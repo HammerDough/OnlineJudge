@@ -1,0 +1,29 @@
+# ========== 前端 oj-frontend 专属忽略 ==========
+oj-frontend/node_modules/
+oj-frontend/dist/
+oj-frontend/dist-ssr/
+oj-frontend/.env*.local
+oj-frontend/.env
+oj-frontend/npm-debug.log*
+oj-frontend/pnpm-debug.log*
+oj-frontend/yarn-debug.log*
+oj-frontend/.vscode/
+oj-frontend/coverage/
+
+# ========== 后端 oj-backend 专属忽略 ==========
+oj-backend/target/
+oj-backend/.idea/
+oj-backend/*.iml
+oj-backend/*.log
+oj-backend/.classpath
+oj-backend/.settings/
+oj-backend/build/
+
+# ========== 全项目通用（根目录+所有子文件夹）IDE/系统文件 ==========
+.idea/
+.vscode/
+*.suo
+*.sdf
+.DS_Store
+Thumbs.db
+*.tmp
