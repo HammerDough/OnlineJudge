@@ -1,11 +1,126 @@
 <script setup>
+import { ref } from 'vue'
 
+// 切换登录/注册
+const isLogin = ref(true)
+
+// 登录表单
+const loginForm = ref({
+  username: '',
+  password: ''
+})
+
+// 注册表单
+const registerForm = ref({
+  username: '',
+  password: ''
+})
 </script>
 
-<template>
 
+<template>
+  <div class="login-page">
+    
+    <!-- 登录卡片 -->
+    <div class="login-card">
+        <div class="logo">
+            <img src="@/assets/logo.png" alt="Logo" class="logo-img" />
+            <span class="logo-text">HD-OJ</span>
+        </div>
+      <!-- 切换选项：登录 / 注册 -->
+      <div class="tab-switch">
+        <span :class="{ active: isLogin }" @click="isLogin = true">登录</span>
+        <span :class="{ active: !isLogin }" @click="isLogin = false">注册</span>
+      </div>
+
+      <!-- 登录表单 -->
+      <el-form v-if="isLogin" model="loginForm" class="form">
+        <el-form-item>
+          <el-input v-model="loginForm.username" placeholder="请输入用户名" size="large" />
+        </el-form-item>
+        <el-form-item>
+          <el-input v-model="loginForm.password" placeholder="请输入密码" size="large" show-password />
+        </el-form-item>
+        <el-button color="#3a3a3a" size="large" :dark="isDark">登录</el-button>
+      </el-form>
+
+      <!-- 注册表单 -->
+      <el-form v-else model="registerForm" class="form">
+        <el-form-item>
+          <el-input v-model="registerForm.username" placeholder="请输入用户名" size="large" />
+        </el-form-item>
+        <el-form-item>
+          <el-input v-model="registerForm.password" placeholder="请输入密码" size="large" show-password />
+        </el-form-item>
+        <el-button color="#3a3a3a" size="large" :dark="isDark">注册</el-button>
+      </el-form>
+    </div>
+  </div>
 </template>
 
 <style scoped>
+.login-page {
+  width: 100%;
+  height: 93vh;
+  display: flex;
+  justify-content: center;
+  background-color: #fafbfc;
+}
+
+.login-card {
+  width: 400px;
+  height: 500px;
+  margin-top: 100px;
+  background: #fff;
+  border-radius: 12px;
+  padding: 50px 30px;
+  border: 4px dashed #ff9e59;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.06);
+}
+
+.logo{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 30px;
+}
+
+.logo-img {
+  width: 60px;
+  height: 60px;
+}
+
+.logo-text {
+  font-size: 24px;
+  font-weight: bold;
+  color: #333;
+}
+
+
+.tab-switch {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  margin-bottom: 30px;
+  font-size: 16px;
+}
+
+.tab-switch span {
+  cursor: pointer;
+  color: #666;
+}
+
+.tab-switch span.active {
+  color: #ff9e59;
+  font-weight: 500;
+  padding-bottom: 4px;
+}
+
+/* 表单 */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
 
 </style>

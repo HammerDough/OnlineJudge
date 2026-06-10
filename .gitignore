@@ -1,29 +1,67 @@
-# ========== 前端 oj-frontend 专属忽略 ==========
+# ==================== 1、oj-frontend(Vue3+Vite) 专属忽略【精准路径】 ====================
+# 依赖包
 oj-frontend/node_modules/
+# vite构建产物
 oj-frontend/dist/
 oj-frontend/dist-ssr/
-oj-frontend/.env*.local
-oj-frontend/.env
+# vite缓存目录
+oj-frontend/.vite/
+# 本地环境变量（本地密钥、后端本地地址，严禁提交）
+oj-frontend/.env.local
+oj-frontend/.env.development.local
+oj-frontend/.env.production.local
+oj-frontend/.env.test.local
+# 日志文件
 oj-frontend/npm-debug.log*
 oj-frontend/pnpm-debug.log*
 oj-frontend/yarn-debug.log*
-oj-frontend/.vscode/
+oj-frontend/yarn-error.log*
+# eslint/prettier缓存
+oj-frontend/.eslintcache
+oj-frontend/.stylelintcache
+# 单元测试覆盖率目录（后续加vitest用）
 oj-frontend/coverage/
+# vite临时时间戳文件
+oj-frontend/vite.config.ts.timestamp-*
+# lock文件按需保留：需要提交就删掉下面三行，不需要提交依赖锁定就放开
+# oj-frontend/package-lock.json
+# oj-frontend/pnpm-lock.yaml
+# oj-frontend/yarn.lock
 
-# ========== 后端 oj-backend 专属忽略 ==========
+# ==================== 2、oj-backend(SpringBoot-Maven) 专属忽略【精准路径】 ====================
+# maven编译产物
 oj-backend/target/
+# IDEA配置
 oj-backend/.idea/
 oj-backend/*.iml
-oj-backend/*.log
-oj-backend/.classpath
+oj-backend/*.ipr
+oj-backend/*.iws
+# eclipse配置
 oj-backend/.settings/
-oj-backend/build/
+oj-backend/.project
+oj-backend/.classpath
+# 打包产物
+oj-backend/*.jar
+oj-backend/*.war
+# 本地配置（本地数据库、密码，禁止提交）
+oj-backend/application-*.yml
+oj-backend/application-*.properties
+oj-backend/*.yml.local
+oj-backend/*.properties.local
+# 运行日志
+oj-backend/*.log
+oj-backend/logs/
+# 临时文件
+oj-backend/*.tmp
+oj-backend/*.bak
 
-# ========== 全项目通用（根目录+所有子文件夹）IDE/系统文件 ==========
+# ==================== 3、项目全局通用忽略（根目录+所有子目录） ====================
+# 编辑器配置
 .idea/
 .vscode/
-*.suo
-*.sdf
+# 系统垃圾文件
 .DS_Store
 Thumbs.db
-*.tmp
+# 临时缓存
+*.sw?
+*.swo

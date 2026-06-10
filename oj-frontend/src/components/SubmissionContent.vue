@@ -3,7 +3,7 @@
 </script>
 
 <template>
-    用户
+    提交记录
 </template>
 
 <style scoped>

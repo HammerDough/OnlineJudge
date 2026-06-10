@@ -3,7 +3,7 @@
 </script>
 
 <template>
-    用户
+    题解
 </template>
 
 <style scoped>
