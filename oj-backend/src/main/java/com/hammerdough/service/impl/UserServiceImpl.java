@@ -51,6 +51,21 @@ public class UserServiceImpl implements UserService {
         return rows > 0;
     }
 
+    @Override
+    public User login(UserDTO userDTO) {
+        String username = userDTO.getUsername().trim();
+        String inputPwd = userDTO.getPassword().trim();
+        User user = userMapper.selectByUsername(username);
+        if(user == null){
+            return null;
+        }
+
+        if(!passwordEncoder.matches(inputPwd,user.getPassword())){
+            return null;
+        }
+        return user;
+    }
+
     private String generateRandomNickname(){
         String prefix = "OJ_";
         int num = random.nextInt(1000);
