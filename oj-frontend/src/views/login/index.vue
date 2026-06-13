@@ -1,5 +1,13 @@
 <script setup>
 import { ref } from 'vue'
+import {login,register,getUserInfo} from '@/api/user'
+import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
+import { useUserStore } from '@/stores/user'
+
+
+const router = useRouter()
+const userStore = useUserStore()
 
 // 切换登录/注册
 const isLogin = ref(true)
@@ -15,6 +23,58 @@ const registerForm = ref({
   username: '',
   password: ''
 })
+
+// 登录逻辑
+const handleLogin = async()=>{
+  const{username,password} = loginForm.value
+
+  if(!username||!password){
+    ElMessage.warning('用户名和密码不能为空')
+    return
+  }
+
+  try{
+    const res = await login(loginForm.value)
+    if(res.code == 1){
+      localStorage.setItem('token',res.data)
+      ElMessage.success('登录成功')
+
+      const userRes = await getUserInfo()
+      if(userRes.code == 1){
+        userStore.setUserInfo(userRes.data)
+      }
+
+      router.push('/index')
+    }else{
+      ElMessage.error(res.msg)
+    }
+  }catch(err){
+    ElMessage.error('服务器请求超时')
+  }
+}
+
+// 注册逻辑
+const handleRegister = async () => {
+  const { username, password } = registerForm.value
+  if (!username || !password) {
+    ElMessage.warning('用户名和密码不能为空')
+    return
+  }
+  try {
+    const res = await register(registerForm.value)
+    if (res.code === 1) {
+      ElMessage.success('注册成功，请前往登录')
+      // 注册成功切到登录页，清空表单
+      isLogin.value = true
+      registerForm.value = { username: '', password: '' }
+    } else {
+      ElMessage.error(res.msg)
+    }
+  } catch (err) {
+    ElMessage.error('服务器请求超时')
+  }
+}
+
 </script>
 
 
@@ -34,25 +94,25 @@ const registerForm = ref({
       </div>
 
       <!-- 登录表单 -->
-      <el-form v-if="isLogin" model="loginForm" class="form">
+      <el-form v-if="isLogin" model="loginForm" class="form" @keyup.enter="handleLogin">
         <el-form-item>
           <el-input v-model="loginForm.username" placeholder="请输入用户名" size="large" />
         </el-form-item>
         <el-form-item>
           <el-input v-model="loginForm.password" placeholder="请输入密码" size="large" show-password />
         </el-form-item>
-        <el-button color="#3a3a3a" size="large" :dark="isDark">登录</el-button>
+        <el-button color="#3a3a3a" size="large" :dark="isDark" @click="handleLogin">登录</el-button>
       </el-form>
 
       <!-- 注册表单 -->
-      <el-form v-else model="registerForm" class="form">
+      <el-form v-else model="registerForm" class="form" @keyup.enter="handleRegister">
         <el-form-item>
           <el-input v-model="registerForm.username" placeholder="请输入用户名" size="large" />
         </el-form-item>
         <el-form-item>
           <el-input v-model="registerForm.password" placeholder="请输入密码" size="large" show-password />
         </el-form-item>
-        <el-button color="#3a3a3a" size="large" :dark="isDark">注册</el-button>
+        <el-button color="#3a3a3a" size="large" :dark="isDark" @click="handleRegister">注册</el-button>
       </el-form>
     </div>
   </div>

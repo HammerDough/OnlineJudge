@@ -65,3 +65,6 @@ Thumbs.db
 # 临时缓存
 *.sw?
 *.swo
+
+# 资源文件
+oj-upload/

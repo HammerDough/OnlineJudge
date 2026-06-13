@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- 命名空间必须和Mapper接口的全限定名完全一致 -->
+<mapper namespace="com.hammerdough.mapper.ProblemBaseMapper">
+
+    <!-- 条件查询题目列表（PageHelper自动分页） -->
+    <select id="selectProblemList" resultType="com.hammerdough.entity.ProblemBase">
+        SELECT id, title, difficulty, submit_count, accept_count
+        FROM problem_base
+        WHERE is_deleted = 0
+
+        <if test="searchField != null and keyword != null and keyword != ''">
+            <if test="searchField == 'id'">
+                AND id = #{keyword}
+            </if>
+            <if test="searchField == 'title'">
+                AND title LIKE CONCAT('%', #{keyword}, '%')
+            </if>
+        </if>
+
+        <if test="difficulty != null">
+            AND difficulty = #{difficulty}
+        </if>
+
+        ORDER BY id ASC
+    </select>
+
+    <!-- 根据ID查询题目基础信息 -->
+    <select id="selectBaseById" resultType="com.hammerdough.entity.ProblemBase">
+        SELECT id, title, difficulty, submit_count, accept_count
+        FROM problem_base
+        WHERE id = #{id} AND is_deleted = 0
+    </select>
+
+</mapper>

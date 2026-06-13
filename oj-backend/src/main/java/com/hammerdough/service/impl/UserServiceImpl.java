@@ -1,6 +1,7 @@
 package com.hammerdough.service.impl;
 
 import com.hammerdough.dto.UserDTO;
+import com.hammerdough.dto.UserUpdateDTO;
 import com.hammerdough.entity.User;
 import com.hammerdough.mapper.UserMapper;
 import com.hammerdough.service.UserService;
@@ -64,6 +65,23 @@ public class UserServiceImpl implements UserService {
             return null;
         }
         return user;
+    }
+
+    @Override
+    public User getById(Integer userId) {
+        User user = userMapper.selectByUserId(userId);
+        return user;
+    }
+
+    @Override
+    public User updateUserInfo(Integer userId, UserUpdateDTO dto) {
+        User user = userMapper.selectByUserId(userId);
+        if(user == null){
+            return null;
+        }
+
+        userMapper.updateUserInfo(userId,dto.getNickname(),dto.getAvatar());
+        return userMapper.selectByUserId(userId);
     }
 
     private String generateRandomNickname(){

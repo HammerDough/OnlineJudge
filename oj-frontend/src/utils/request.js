@@ -5,6 +5,20 @@ const request = axios.create({
   timeout: 60000,
 })
 
+request.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem('token')
+        if(token){
+            config.headers.token = token
+        }
+        return config
+    },
+    (error) =>{
+        return Promise.reject(error)
+    }
+)
+
+
 
 //axios的响应拦截器
 request.interceptors.response.use(

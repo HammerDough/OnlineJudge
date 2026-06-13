@@ -1,6 +1,14 @@
 <script setup>
-import {ref,shallowRef,onMounted,onUnmounted} from 'vue'
+import {ref,shallowRef,onMounted,onUnmounted,watch} from 'vue'
 import * as monaco from 'monaco-editor'
+import { useRoute,useRouter} from 'vue-router'
+import { getProblemDetail } from '@/api/problem'
+import { ElMessage,ElLoading,ElMessageBox } from 'element-plus'
+
+const route = useRoute()
+const router = useRouter()
+const problemId = ref('')
+const problemDetail = ref({})
 
 
 //===============description-panel================//
@@ -27,6 +35,30 @@ const handleTabSelect = (index) => {
   currentComponent.value = componentMap[index]
 }
 
+//===============加载题目详情================//
+const loadProblemDetail = async()=>{
+    problemId.value = route.params.id
+    if(!problemId.value){
+        ElMessage.warning('题目ID不存在')
+        return
+    }
+
+    const loading = ElLoading.service({text:'加载题目中...'})
+
+    try{
+        const res = await getProblemDetail(problemId.value)
+        if(res.code == 1){
+            problemDetail.value = res.data
+            document.title = res.data.title
+        }
+    }catch(error){
+        ElMessage.error('题目加载失败')
+        console.error(error)
+    }finally{
+        loading.close()
+    }
+}
+
 
 //===============edit-panel================//
 const editorContainer = ref(null);
@@ -36,22 +68,24 @@ const lang = ref('cpp')
 
 const codeTemplates = {
   cpp: '#include <iostream>\nusing namespace std;\n\nint main() {\n\n    return 0;\n}',
-  c: '#include <stdio.h>\nint main() {\n    return 0;\n}',
-  java: 'public class Main {\n    public static void main(String[] args) {\n    }\n}',
+  c: '#include <stdio.h>\n\nint main() {\n\n    return 0;\n}',
+  java: 'import java.util.Scanner;\n\npublic class Main {\n    public static void main(String[] args) {\n\n    }\n}',
   python: '# Write your code here\nif __name__ == "__main__":\n    pass',
   javascript: '// Write your code here\nconsole.log("Hello")',
   go: 'package main\nimport "fmt"\nfunc main() {\n\tfmt.Println("")\n}'
 }
 
-onMounted(() => {
+onMounted(async() => {
+  await loadProblemDetail()
+
   editor = monaco.editor.create(editorContainer.value, {
     value: codeTemplates.cpp,
     language: 'cpp', // 支持：python/java/javascript/go 等
-    theme: 'vs', // vs/vs-dark/hc-black
+    theme: theme.value, // vs/vs-dark/hc-black
     automaticLayout: true,
     minimap: { enabled: false }, // OJ 通常关闭小地图
-    fontSize: 14,
-    lineNumbers: 'on',
+    fontSize: getFontSizeNum(fontSize.value),
+    lineNumbers: getLineNumberStr(showLineNum.value),
     roundedSelection: true,
     scrollBeyondLastLine: false,
   });
@@ -61,6 +95,62 @@ const changeLang = (val) => {
   const model = editor.getModel()
   monaco.editor.setModelLanguage(model, val)
   editor.setValue(codeTemplates[val])
+}
+
+const settingDialogVisible = ref(false)
+const form = ref({})
+const theme = ref('vs')
+const fontSize = ref('14px')
+const showLineNum = ref(true)
+
+const getFontSizeNum = (str)=>parseInt(str)
+const getLineNumberStr = (boolVal) =>boolVal? 'on':'off'
+
+// 字号变化
+watch(fontSize, (newVal) => {
+  if (!editor) return
+  editor.updateOptions({
+    fontSize: getFontSizeNum(newVal)
+  })
+})
+
+// 主题变化
+watch(theme, (newVal) => {
+  if (!editor) return
+  monaco.editor.setTheme(newVal)
+})
+
+// 行号开关变化
+watch(showLineNum, (newBool) => {
+  if (!editor) return
+  editor.updateOptions({
+    lineNumbers: getLineNumberStr(newBool)
+  })
+})
+
+const reCode =()=>{
+    ElMessageBox.confirm(
+    '确认要将代码恢复为默认吗？',
+    '提示',
+    {
+      confirmButtonText: '确认',
+      cancelButtonText: '取消',
+      type: 'warning',
+    }
+  )
+    .then(() => {
+        editor.setValue(codeTemplates[lang.value])
+      ElMessage({
+        type: 'success',
+        message: '操作成功',
+      })
+    })
+    .catch(() => {
+      ElMessage({
+        type: 'info',
+        message: '取消操作',
+      })
+    })
 }
 
 
@@ -95,10 +185,12 @@ onUnmounted(() => {
                 <div class="description-panel">
                     <el-container>
                         <el-header class="description-head">
-                            <span>
-                                <img src="@/assets/logo.png" alt="Logo" class="logo-img" width="30px">
-                            </span>
-                            <span class="title">1.两数之和</span>
+                            <el-tooltip content="返回首页" effect="light">
+                                <span @click="router.push('/')" style="cursor:pointer">
+                                    <img src="@/assets/logo.png" alt="Logo" class="logo-img" width="30px">
+                                </span>
+                            </el-tooltip>
+                            <span class="title">{{problemDetail.id}}.{{ problemDetail.title }}</span>
                         </el-header>
                         <el-container>
                             <el-aside class="description-aside" width="100px">
@@ -131,7 +223,7 @@ onUnmounted(() => {
                                 </el-menu>
                             </el-aside>
                             <el-main class="description-main">
-                                <component :is="currentComponent" />
+                                <component :is="currentComponent" :detail="problemDetail" />
                             </el-main>
                         </el-container>
                     </el-container>
@@ -162,8 +254,12 @@ onUnmounted(() => {
                                 </div>
 
                                 <div class="right">
-                                    <el-button color="#ff9e59" :dark="isDark" text><el-icon size="larger"><Setting /></el-icon></el-button>
-                                    <el-button color="#ff9e59" :dark="isDark" text><el-icon size="larger"><Refresh /></el-icon></el-button>
+                                    <el-tooltip content="设置" effect="light">
+                                        <el-button color="#ff9e59" :dark="isDark" text @click="settingDialogVisible=true"><el-icon size="larger"><Setting /></el-icon></el-button>
+                                    </el-tooltip>
+                                    <el-tooltip content="清空代码为默认" effect="light">
+                                        <el-button color="#ff9e59" :dark="isDark" text @click="reCode"><el-icon size="larger"><Refresh /></el-icon></el-button>
+                                    </el-tooltip>
                                 </div>
                                 
                                 
@@ -188,18 +284,44 @@ onUnmounted(() => {
             </el-splitter-panel>
     </el-splitter>
     </div>
+    <el-dialog v-model="settingDialogVisible" title="编辑器设置" width="300">
+    <el-form :model="form">
+      <el-form-item label="字号" :label-width="50">
+        <el-select v-model="fontSize" placeholder="请选择字号">
+          <el-option label="12px" value="12px" />
+          <el-option label="14px" value="14px" />
+          <el-option label="16px" value="16px" />
+          <el-option label="18px" value="18px" />
+          <el-option label="20px" value="20px" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="主题" :label-width="50">
+        <el-select v-model="theme" placeholder="主题">
+          <el-option label="白色" value="vs" />
+          <el-option label="黑色" value="vs-dark" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="显示行号" :label-width="80">
+        <el-switch v-model="showLineNum"
+        style="--el-switch-on-color: #3a3a3a;"/>
+      </el-form-item>
+    </el-form>
+  </el-dialog>
+
 </template>
 
 <style scoped>
 .page-wrapper {
  width: 100%;
  height: 100vh;
+ overflow: hidden;
 }
 
 
 
 .description-panel{
     height: 100%;
+    overflow: hidden;
 }
 
 .description-head{
@@ -209,6 +331,10 @@ onUnmounted(() => {
     gap: 20px;
     background-color: #fafafa;
     border-bottom: 1px solid #eee;
+}
+
+.description-main{
+    padding: 0;
 }
 
 .el-container{
@@ -297,6 +423,7 @@ onUnmounted(() => {
 
 .console-panel{
     height: 100%;
+    overflow: hidden;
 }
 
 .console-header{

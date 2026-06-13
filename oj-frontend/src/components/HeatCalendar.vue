@@ -1,3 +1,125 @@
+<script setup>
+import { onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { storeToRefs } from 'pinia' // 关键：确保Pinia状态响应式
+import CalHeatmap from 'cal-heatmap'
+import Tooltip from 'cal-heatmap/plugins/Tooltip'
+import LegendLite from 'cal-heatmap/plugins/LegendLite'
+import CalendarLabel from 'cal-heatmap/plugins/CalendarLabel'
+import 'cal-heatmap/cal-heatmap.css'
+import dayjs from 'dayjs'
+import { getUserDailyStat } from '@/api/userStat'
+import { useUserStore } from '@/stores/user'
+
+let cal = null
+const userStore = useUserStore()
+// 关键：用storeToRefs解构，保证userId和isLogin是响应式ref
+const { userId, isLogin } = storeToRefs(userStore)
+
+// 同时监听登录状态和用户ID，双重保险
+watch(
+  [isLogin, userId],
+  ([newIsLogin, newUserId]) => {
+    // 严格校验：必须已登录 + userId是大于0的数字
+    if (!newIsLogin || typeof newUserId !== 'number' || newUserId <= 0) {
+      cal?.destroy()
+      cal = null
+      return
+    }
+
+    // 销毁旧实例，防止重复渲染
+    cal?.destroy()
+    // 加nextTick确保DOM完全就绪后再初始化
+    nextTick(() => {
+      initHeatmap(newUserId)
+    })
+  },
+  { 
+    immediate: true,
+    deep: false // 基本类型不需要深度监听
+  }
+)
+
+// 抽离独立的初始化函数
+const initHeatmap = async (userId) => {
+  try {
+    cal = new CalHeatmap()
+    const { data: statList } = await getUserDailyStat(userId)
+
+    const startDate = dayjs().subtract(364, 'day').toDate()
+
+    cal.paint(
+      {
+        data: {
+          source: statList,
+          x: 'date',
+          y: d => +d.totalMinute,
+          groupY: 'max',
+        },
+        date: { start: startDate },
+        range: 12,
+        scale: {
+          color: {
+            type: 'threshold',
+            range: ['#eeeeee', '#ffd5b3', '#ffb380', '#ff9e59'],
+            domain: [30, 60, 90],
+          },
+        },
+        domain: {
+          type: 'month',
+          gutter: 4,
+          label: { text: 'MMM', textAlign: 'start', position: 'top' },
+        },
+        subDomain: {
+          type: 'ghDay',
+          radius: 2,
+          width: 11,
+          height: 11,
+          gutter: 4,
+        },
+        itemSelector: '#ex-ghDay',
+      },
+      [
+        [Tooltip, {
+          text: (date, value, dayjsDate) => {
+            const dayData = statList.find(item => item.date === dayjsDate.format('YYYY-MM-DD'))
+            if (!dayData || !dayData.totalMinute) {
+              return `0题 / 0分钟 | ${dayjsDate.format('YYYY-MM-DD')}`
+            }
+            return `${dayData.finishCount}题 / ${dayData.totalMinute}分钟 | ${dayjsDate.format('YYYY-MM-DD')}`
+          },
+        }],
+        [LegendLite, {
+          includeBlank: true,
+          itemSelector: '#ex-ghDay-legend',
+          radius: 2,
+          width: 11,
+          height: 11,
+          gutter: 4,
+        }],
+        [CalendarLabel, {
+          width: 30,
+          textAlign: 'start',
+          text: () => dayjs.weekdaysShort().map((d, i) => (i % 2 === 0 ? '' : d)),
+          padding: [25, 0, 0, 0],
+        }],
+      ]
+    )
+  } catch (error) {
+    console.error('热力图加载失败:', error)
+  }
+}
+
+// 翻页功能
+const prev = () => cal?.previous()
+const next = () => cal?.next()
+
+// 组件卸载时销毁实例
+onUnmounted(() => {
+  cal?.destroy()
+  cal = null
+})
+</script>
+
 <template>
   <div
     style="
@@ -32,91 +154,6 @@
   </div>
 </template>
 
-<script setup>
-import { onMounted, onUnmounted } from 'vue'
-import CalHeatmap from 'cal-heatmap'
-import Tooltip from 'cal-heatmap/plugins/Tooltip'
-import LegendLite from 'cal-heatmap/plugins/LegendLite'
-import CalendarLabel from 'cal-heatmap/plugins/CalendarLabel'
-import 'cal-heatmap/cal-heatmap.css'
-import dayjs from 'dayjs'
-
-let cal = null
-
-onMounted(() => {
-  cal = new CalHeatmap()
-
-  // 模拟一整年数据（保证布局完整）
-  const data = []
-  for (let i = 1; i <= 365; i++) {
-    const d = new Date(2025, 0, i)
-    data.push({
-      date: d.toISOString().slice(0, 10),
-      minute: Math.floor(Math.random() * 120)
-    })
-  }
-
-  cal.paint(
-    {
-      data: {
-        source: data,
-        x: 'date',
-        y: d => +d.minute,
-        groupY: 'max',
-      },
-      date: { start: new Date('2025-01-01') },
-      range: 12,
-      scale: {
-        color: {
-          type: 'threshold',
-          range: ['#eeeeee', '#ffd5b3', '#ffb380', '#ff9e59'],
-          domain: [10, 20, 30],
-        },
-      },
-      domain: {
-        type: 'month',
-        gutter: 4,
-        label: { text: 'MMM', textAlign: 'start', position: 'top' },
-      },
-      subDomain: {
-        type: 'ghDay',
-        radius: 2,
-        width: 11,
-        height: 11,
-        gutter: 4,
-      },
-      itemSelector: '#ex-ghDay',
-    },
-    [
-      [Tooltip, {
-        text: (date, value, dayjsDate) => {
-          if (!value) return `0min on ${dayjsDate.format('YYYY-MM-DD')}`
-          return `${value}min on ${dayjsDate.format('YYYY-MM-DD')}`
-        },
-      }],
-      [LegendLite, {
-        includeBlank: true,
-        itemSelector: '#ex-ghDay-legend',
-        radius: 2,
-        width: 11,
-        height: 11,
-        gutter: 4,
-      }],
-      [CalendarLabel, {
-        width: 30,
-        textAlign: 'start',
-        text: () => dayjs.weekdaysShort().map((d, i) => (i % 2 === 0 ? '' : d)),
-        padding: [25, 0, 0, 0],
-      }],
-    ]
-  )
-})
-
-const prev = () => cal?.previous()
-const next = () => cal?.next()
-
-onUnmounted(() => cal?.destroy())
-</script>
 
 <style scoped>
 button {

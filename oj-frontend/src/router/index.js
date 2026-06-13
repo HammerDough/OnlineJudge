@@ -18,11 +18,11 @@ const router = createRouter({
       children: [
         {path: '/index', name: 'index', component: IndexView},
         {path: '/problems', name: 'problems', component: ProblemsView},
-        {path: '/users', name: 'users', component: UsersView},
+        {path: '/users/:userId', name: 'users', component: UsersView},
         {path: '/login', name: 'login', component: LoginView}
       ]
     },
-    {path: '/description', name: 'description', component: DescriptionView}
+    {path: '/description/:id', name: 'description', component: DescriptionView}
 
   ],
 })

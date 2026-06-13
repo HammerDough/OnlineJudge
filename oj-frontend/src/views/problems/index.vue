@@ -1,62 +1,88 @@
 <script setup>
-import { ref } from 'vue'
+import { ref ,onMounted} from 'vue'
 import HeatCalendar from '@/components/HeatCalendar.vue'
 import DataCalendar from '@/components/DataCalendar.vue'
+import { getProblemList } from '@/api/problem'
+import { ElMessage } from 'element-plus'
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
 
 // 筛选相关
 const keyword = ref('')
 const searchField = ref('')
-const value = ref('')
+const difficulty = ref('')
 const options = [
-  {
-    value: 'Option1',
-    label: '简单',
-  },
-  {
-    value: 'Option2',
-    label: '中等',
-  },
-  {
-    value: 'Option3',
-    label: '困难',
-  }
+  {value: '1',label: '简单',},
+  {value: '2',label: '中等',},
+  {value: '3',label: '困难',}
 ]
 
 // 表格数据示例
-const tableData = [
-  {
-    id: 1,
-    title: '两数之和',
-    difficulty: '简单',
-    passRate: '45%',
-  },
-  {
-    id: 2,
-    title: '最长回文子串',
-    difficulty: '中等',
-    passRate: '30%',
-  },
-  {
-    id: 3,
-    title: '正则表达式匹配',
-    difficulty: '困难',
-    passRate: '20%',
-  },
-]
+const total = ref(0)
+const tableData = ref([])
 
 
 // 分页相关
-const currentPage = ref(5)
-const pageSize = ref(100)
-const background = ref(false)
-const disabled = ref(false)
-const total = ref(1000)
-const handleSizeChange = (val) => {
-  console.log(`${val} items per page`)
+const currentPage = ref(1)
+const pageSize = ref(15)
+
+
+const loadProblemList = async()=>{
+  const params = {
+    pageNum: currentPage.value,
+    pageSize: pageSize.value
+  }
+
+  // 搜索字段 + 关键词：必须两个都不为空才传递
+  if (searchField.value && keyword.value.trim()) {
+    params.searchField = searchField.value
+    params.keyword = keyword.value.trim()
+  }
+
+  // 难度：不为空才传递
+  if (difficulty.value) {
+    params.difficulty = difficulty.value
+  }
+
+  try {
+    const { data } = await getProblemList(params)
+    tableData.value = data.list
+    total.value = data.total
+  } catch (error) {
+    ElMessage.error('加载题目列表失败')
+    console.error(error)
+  }
 }
+
+
+// 搜索按钮
+const handleSearch = ()=>{
+  currentPage.value = 1
+  loadProblemList()
+}
+
+// 清空筛选
+const clearFilters = ()=>{
+  keyword.value = ''
+  searchField.value = ''
+  difficulty.value = ''
+  currentPage.value = 1
+  loadProblemList()
+}
+
 const handleCurrentChange = (val) => {
-  console.log(`current page: ${val}`)
+  currentPage.value = val
+  loadProblemList()
+}
+
+onMounted(()=>{
+  loadProblemList()
+})
+
+
+const goToDetail = (row)=>{
+  router.push(`/description/${row.id}`)
 }
 
 </script>
@@ -77,7 +103,7 @@ const handleCurrentChange = (val) => {
                 <el-form-item>
                   <el-input v-model="keyword" placeholder="请输入关键词" style="width: 280px">
                     <template #prepend>
-                      <el-select v-model="searchField" style="width: 80px">
+                      <el-select v-model="searchField" style="width: 75px" placeholder="字段">
                         <el-option label="编号" value="id" />
                         <el-option label="名称" value="title" />
                       </el-select>
@@ -89,10 +115,11 @@ const handleCurrentChange = (val) => {
                 </el-form-item>
                 <el-form-item>
                   <el-select
-                    v-model="value"
+                    v-model="difficulty"
                     clearable
                     placeholder="难度"
                     style="width: 80px"
+                    @change="loadProblemList"
                   >
                     <el-option
                       v-for="item in options"
@@ -109,7 +136,12 @@ const handleCurrentChange = (val) => {
           </div>
 
           <div class="show-area">
-            <el-table :data="tableData" stripe style="width: 100%">
+            <el-table :data="tableData" 
+              stripe 
+              style="width: 100%;cursor:pointer"
+              @row-click="goToDetail"
+              row-class-name="click-row"
+              >
               <el-table-column prop="id" label="编号" width="60" />
               <el-table-column prop="title" label="名称" />
               <el-table-column prop="difficulty" label="难度" width="80" />
@@ -123,11 +155,10 @@ const handleCurrentChange = (val) => {
               v-model:current-page="currentPage"
               :page-size="pageSize"
               :size="'large'"
-              :disabled="disabled"
-              :background="background"
+              :disabled="false"
+              :background="false"
               layout="prev, pager, next"
               :total="total"
-              @size-change="handleSizeChange"
               @current-change="handleCurrentChange"
             />
           </div>
@@ -137,7 +168,6 @@ const handleCurrentChange = (val) => {
 
 
       <div class="problems-aside">
-        <div class="card" id="statistic-area">统计区域</div>
         <div class="card" id="card-area">
           <DataCalendar />
         </div>
@@ -222,10 +252,6 @@ const handleCurrentChange = (val) => {
   display: inline-flex;
 }
 
-#statistic-area {
-  min-height: 200px;
-  background-color: lightgreen;
-}
 
 #card-area {
   background-color: lightyellow;

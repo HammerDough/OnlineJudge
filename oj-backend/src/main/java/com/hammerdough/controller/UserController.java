@@ -3,14 +3,15 @@ package com.hammerdough.controller;
 
 import com.hammerdough.common.Result;
 import com.hammerdough.dto.UserDTO;
+import com.hammerdough.dto.UserUpdateDTO;
 import com.hammerdough.entity.User;
 import com.hammerdough.service.UserService;
 import com.hammerdough.util.JwtUtil;
+import com.hammerdough.vo.UserVO;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -68,6 +69,59 @@ public class UserController {
 
         String token = jwtUtil.createJWT(claims);
         return Result.success(token);
+    }
+
+    @GetMapping("/info")
+    public Result<UserVO> getUserInfo(HttpServletRequest request){
+        Integer userId = (Integer)request.getAttribute("userId");
+        if(userId == null){
+            return Result.error("未登录");
+        }
+
+        User user = userService.getById(userId);
+        if(user == null){
+            return Result.error("用户不存在");
+        }
+
+        UserVO userVO = new UserVO();
+        BeanUtils.copyProperties(user,userVO);
+
+        return Result.success(userVO);
+    }
+
+    @GetMapping("info/{userId}")
+    public Result<UserVO> getUserInfo(@PathVariable Integer userId){
+        if(userId == null || userId <= 0){
+            return Result.error("用户非法ID");
+        }
+
+        User user = userService.getById(userId);
+        if(user == null){
+            return Result.error("用户不存在");
+        }
+
+        UserVO userVO = new UserVO();
+        BeanUtils.copyProperties(user,userVO);
+
+        return Result.success(userVO);
+    }
+
+    @PutMapping("/update")
+    public Result<UserVO> updateUserInfo(HttpServletRequest request,
+                         @RequestBody UserUpdateDTO dto){
+        Integer loginUserId = (Integer) request.getAttribute("userId");
+        if(loginUserId == null){
+            return Result.error("未登录");
+        }
+
+        User user = userService.updateUserInfo(loginUserId,dto);
+        if(user == null){
+            return Result.error("用户不存在");
+        }
+
+        UserVO userVO = new UserVO();
+        BeanUtils.copyProperties(user,userVO);
+        return Result.success(userVO);
     }
 
 

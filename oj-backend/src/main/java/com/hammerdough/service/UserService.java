@@ -1,6 +1,7 @@
 package com.hammerdough.service;
 
 import com.hammerdough.dto.UserDTO;
+import com.hammerdough.dto.UserUpdateDTO;
 import com.hammerdough.entity.User;
 import org.springframework.stereotype.Service;
 
@@ -14,4 +15,8 @@ public interface UserService {
     boolean register(UserDTO userDTO);
 
     User login(UserDTO userDTO);
+
+    User getById(Integer userId);
+
+    User updateUserInfo(Integer loginUserId, UserUpdateDTO dto);
 }
