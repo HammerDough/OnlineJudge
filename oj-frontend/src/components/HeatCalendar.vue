@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, onUnmounted, watch, nextTick } from 'vue'
 import { storeToRefs } from 'pinia' // 关键：确保Pinia状态响应式
 import CalHeatmap from 'cal-heatmap'
 import Tooltip from 'cal-heatmap/plugins/Tooltip'
@@ -15,9 +15,22 @@ const userStore = useUserStore()
 // 关键：用storeToRefs解构，保证userId和isLogin是响应式ref
 const { userId, isLogin } = storeToRefs(userStore)
 
+const heatMode = ref('minute')
+
+const colorConfig = {
+  minute:{
+    domain:[1,30,60,90]
+  },
+  count:{
+    domain:[1,3,5,10]
+  }
+}
+
+
+
 // 同时监听登录状态和用户ID，双重保险
 watch(
-  [isLogin, userId],
+  [isLogin, userId,heatMode],
   ([newIsLogin, newUserId]) => {
     // 严格校验：必须已登录 + userId是大于0的数字
     if (!newIsLogin || typeof newUserId !== 'number' || newUserId <= 0) {
@@ -46,22 +59,26 @@ const initHeatmap = async (userId) => {
     const { data: statList } = await getUserDailyStat(userId)
 
     const startDate = dayjs().subtract(364, 'day').toDate()
+    const currentDomain = colorConfig[heatMode.value]
 
     cal.paint(
       {
         data: {
           source: statList,
           x: 'date',
-          y: d => +d.totalMinute,
+          y: heatMode.value === 'minute' ? d => d.totalMinute : d => d.finishCount,
           groupY: 'max',
         },
-        date: { start: startDate },
+        date: { 
+          start: startDate,
+          max: dayjs().toDate()
+        },
         range: 12,
         scale: {
           color: {
             type: 'threshold',
             range: ['#eeeeee', '#ffd5b3', '#ffb380', '#ff9e59'],
-            domain: [30, 60, 90],
+            domain: currentDomain.domain,
           },
         },
         domain: {
@@ -82,10 +99,14 @@ const initHeatmap = async (userId) => {
         [Tooltip, {
           text: (date, value, dayjsDate) => {
             const dayData = statList.find(item => item.date === dayjsDate.format('YYYY-MM-DD'))
-            if (!dayData || !dayData.totalMinute) {
-              return `0题 / 0分钟 | ${dayjsDate.format('YYYY-MM-DD')}`
+            if (!dayData ) {
+              return heatMode.value === 'minute'
+              ?`0分钟 | ${dayjsDate.format('YYYY-MM-DD')}`
+              :`0题  | ${dayjsDate.format('YYYY-MM-DD')}`
             }
-            return `${dayData.finishCount}题 / ${dayData.totalMinute}分钟 | ${dayjsDate.format('YYYY-MM-DD')}`
+            return heatMode.value === 'minute'
+              ?`${dayData.totalMinute}分钟 | ${dayjsDate.format('YYYY-MM-DD')}`
+              :`${dayData.finishCount}题  | ${dayjsDate.format('YYYY-MM-DD')}`
           },
         }],
         [LegendLite, {
@@ -141,6 +162,13 @@ onUnmounted(() => {
         <button @click="next"><el-icon><CaretRight /></el-icon></button>
       </div>
 
+       <!-- 模式切换按钮 -->
+    <div style="display:flex;gap:10px;">
+      <el-radio-group v-model="heatMode" size="small" text-color="#fff" fill="#ff9e59">
+        <el-radio-button value="minute">刷题时长</el-radio-button>
+        <el-radio-button value="count">做题数量</el-radio-button>
+      </el-radio-group>
+    </div>
       <!-- 右侧图例 -->
       <div style="font-size: 12px;">
         <span style="color: #768390;">Less</span>

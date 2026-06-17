@@ -29,7 +29,16 @@
       </template>
     </Calendar>
 
-    <div class="calendar-footer">打卡规则</div>
+
+    <div class="calendar-footer">
+      <el-tooltip 
+    content="完成一题即可完成今日打卡" 
+    effect="light" 
+    placement="bottom">                              
+      <span style="cursor:pointer">打卡规则</span>
+    </el-tooltip>
+    </div>
+    
   </div>
 </template>
 
@@ -37,6 +46,9 @@
 import { ref, computed, onMounted } from 'vue'
 import { Calendar } from 'v-calendar'
 import 'v-calendar/style.css'
+
+import { getSignCalendar } from '@/api/sign'
+
 
 // 获取日历组件的引用
 const calendarRef = ref(null)
@@ -49,12 +61,10 @@ const currentMonth = ref(new Date().getMonth() + 1) // v-calendar 的 month 是 
 const initialYear = ref(new Date().getFullYear())
 const initialMonth = ref(new Date().getMonth() + 1)
 
+
 // 打卡日期示例
-const checkedDates = ref([
-  '2026-06-01',
-  '2026-06-03',
-  '2026-06-05',
-])
+const checkedDates = ref([])
+const loadedCache = new Set()
 
 // 上一月：通过调用 moveBy 方法
 const prevMonth = () => {
@@ -73,19 +83,43 @@ const nextMonth = () => {
 }
 
 // 监听月份变化，更新显示的文本
-const handlePageUpdate = (pages) => {
+const handlePageUpdate = async (pages) => {
   if (pages && pages.length > 0) {
     const page = pages[0]
-    currentYear.value = page.year
-    currentMonth.value = page.month
-    console.log(`当前页面已切换至：${currentYear.value}年${currentMonth.value}月`)
-    // 在这里可以执行数据拉取等操作
-    // fetchMonthData(currentYear.value, currentMonth.value)
+    const y = page.year
+    const m = page.month
+    currentYear.value = y
+    currentMonth.value = m
+    // 拼接缓存key
+    const cacheKey = `${y}-${m}`
+    // 已请求过直接返回，不再发接口
+    if (loadedCache.has(cacheKey)) return
+
+    // 未请求过，拉取数据并存入缓存
+    await fetchSignData(y, m, cacheKey)
+    }
+}
+
+const fetchSignData = async (year, month, cacheKey) => {
+  try {
+    const res = await getSignCalendar({ year, month })
+    if (res.code === 1) {
+      // 兜底：res.data 不存在/为null/空，直接赋值空数组
+      const rawList = res.data ?? []
+      const dateArr = rawList.map(item => item.signDate)
+      checkedDates.value = dateArr
+      loadedCache.add(cacheKey)
+    }
+  } catch (err) {
+    console.error("打卡日历加载失败", err)
+    // 请求失败清空打卡日期，避免残留上月数据
+    checkedDates.value = []
   }
 }
 
 // 判断今天（用于高亮）
 const isToday = (day) => {
+  if (!day?.date) return false
   const todayStr = new Date().toDateString()
   const dayStr = day.date.toDateString()
   return todayStr === dayStr
@@ -96,25 +130,27 @@ const checkAttrs = computed(() => [
   {
     key: 'checked',
     dates: checkedDates.value,
-    dot: { color: '#ccc', size: 4 }
+    dot: { color: '#fff', size: 4 }
   }
 ])
 
 // 组件挂载后，可选：如果 initial-page 设置正确，这里可以留空
 onMounted(() => {
-  // 确保 initial-page 设置生效
-  // 如果一切正常，handlePageUpdate 会在初始渲染时触发，同步 current 年月
+  const y = initialYear.value
+  const m = initialMonth.value
+  const cacheKey = `${y}-${m}`
+  fetchSignData(y, m, cacheKey)
 })
 </script>
 
 <style scoped>
-/* ... (你的样式保持不变) ... */
 .calendar-card {
   width: 100%;
   background: #fff;
   border-radius: 8px;
   padding: 24px;
   margin: 0 auto;
+ 
 }
 .calendar-header {
   display: flex;
@@ -164,7 +200,7 @@ onMounted(() => {
   font-size: 15px;
 }
 .day-cell.today {
-  background: #4080ff;
+  background: #ff9e59;
   color: white;
   border-radius: 50%;
   width: 34px;
@@ -175,5 +211,6 @@ onMounted(() => {
   font-size: 14px;
   color: #999;
   margin-top: 12px;
+  position: relative;
 }
 </style>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hammerdough.mapper.ProblemTestCaseMapper">
+
+    <!-- 运行调试用例：run_flag=1，有效且未删除 -->
+    <select id="selectRunCaseByProblemId" resultType="com.hammerdough.entity.ProblemTestCase">
+        SELECT id, problem_id, input_content, output_content, run_flag
+        FROM problem_test_case
+        WHERE problem_id = #{problemId}
+        AND run_flag = 1
+        AND is_enabled = 1
+        AND is_deleted = 0
+    </select>
+
+    <!-- 正式提交用例：所有有效用例，按id升序 -->
+    <select id="selectAllValidCaseByProblemId" resultType="com.hammerdough.entity.ProblemTestCase">
+        SELECT id, problem_id, input_content, output_content, run_flag
+        FROM problem_test_case
+        WHERE problem_id = #{problemId}
+        AND is_enabled = 1
+        AND is_deleted = 0
+        ORDER BY id ASC
+    </select>
+</mapper>

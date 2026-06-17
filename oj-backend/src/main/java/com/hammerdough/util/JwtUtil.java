@@ -20,7 +20,7 @@ public class JwtUtil {
     @Value("${jwt.expire}")
     private long ttlMillis;
 
-    // 生成合规密钥（新版强制要求）
+    // 生成合规密钥
     private SecretKey getKey() {
         return Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
     }

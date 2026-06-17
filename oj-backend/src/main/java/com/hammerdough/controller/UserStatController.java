@@ -1,8 +1,10 @@
 package com.hammerdough.controller;
 
 import com.hammerdough.common.Result;
+import com.hammerdough.dto.DailyMinuteDTO;
 import com.hammerdough.service.UserDailyStatService;
 import com.hammerdough.vo.UserDailyStatVO;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -10,14 +12,14 @@ import java.time.LocalDate;
 import java.util.List;
 
 @RestController
-@RequestMapping("/user")
+@RequestMapping("/user/daily-stat")
 public class UserStatController {
 
     @Autowired
     private UserDailyStatService userDailyStatService;
 
 
-    @GetMapping("/daily-stat/{userId}")
+    @GetMapping("/{userId}")
     public Result<List<UserDailyStatVO>> getUserDailyStat(
             @PathVariable Integer userId,
             @RequestParam(required = false) String startDate,
@@ -43,5 +45,14 @@ public class UserStatController {
 
         List<UserDailyStatVO> statList = userDailyStatService.getUserDailyStat(userId,start,end);
         return Result.success(statList);
+    }
+
+
+    @PostMapping("/add-minute")
+    public Result<Void> addDailyMinute(HttpServletRequest request,
+                                       @RequestBody DailyMinuteDTO dto){
+        Integer userId = (Integer)request.getAttribute("userId");
+        userDailyStatService.addUserDailyMinute(userId,dto);
+        return Result.success(null);
     }
 }
